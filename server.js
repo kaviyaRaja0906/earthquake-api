@@ -1,4 +1,3 @@
-// server.js (or index.js, depending on your setup)
 const express = require('express');
 const cors = require('cors');
 const fetch = require('node-fetch');
