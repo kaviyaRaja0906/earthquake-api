@@ -33,7 +33,7 @@ function convertToGeoJSON(data) {
     if (isNaN(longitude) || isNaN(latitude)) {
       throw new Error('Invalid longitude or latitude');
     }
-    const earthquakeDate = new Date(entry.DateTime).toISOString();
+    const earthquakeDate = new Date(entry.DateTime);
     return {
       type: 'Feature',
       geometry: {
@@ -42,7 +42,8 @@ function convertToGeoJSON(data) {
       },
       properties: {
         id: uuidv4(),
-        DateTime: earthquakeDate,
+        DateTime: earthquakeDate.toISOString(),
+        Date: earthquakeDate,
         region: entry.Wilayah,
         magnitude: parseFloat(entry.Magnitude),
         depth: parseInt(entry.Kedalaman.match(/\d+/)[0]),
