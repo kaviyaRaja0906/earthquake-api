@@ -33,7 +33,7 @@ function convertToGeoJSON(data) {
     if (isNaN(longitude) || isNaN(latitude)) {
       throw new Error('Invalid longitude or latitude');
     }
-
+    const earthquakeDate = new Date(entry.DateTime).toISOString();
     return {
       type: 'Feature',
       geometry: {
@@ -42,7 +42,7 @@ function convertToGeoJSON(data) {
       },
       properties: {
         id: uuidv4(),
-        DateTime: new Date(entry.DateTime),
+        DateTime: earthquakeDate,
         region: entry.Wilayah,
         magnitude: parseFloat(entry.Magnitude),
         depth: parseInt(entry.Kedalaman.match(/\d+/)[0]),
@@ -70,33 +70,23 @@ async function fetchAndStoreEarthquakeData() {
     const geojson = convertToGeoJSON(data);
     const { features } = geojson;
 
-    const batch = db.batch();
-    features.forEach((feature) => {
-      const uniqueId = uuidv4();
-      const docRef = earthquakesCollection.doc(uniqueId);
-      const featureWithId = {
-        ...feature,
-        properties: {
-          ...feature.properties,
-          id: uniqueId,
-        },
-      };
-      batch.set(docRef, featureWithId);
-    });
+    for (const feature of features) {
+      const earthquakeDateTime = feature.properties.DateTime;
 
-    await batch.commit();
+      const snapshot = await earthquakesCollection.where('properties.DateTime', '==', earthquakeDateTime).get();
+      if (snapshot.empty) {
+        const docRef = earthquakesCollection.doc();
+        await docRef.set(feature);
+      }
+    }
 
     console.log('New earthquakes added to the database:', features.length);
-
   } catch (error) {
     console.error('Error fetching or storing earthquakes:', error);
   }
 }
 
 fetchAndStoreEarthquakeData();
-
-const dataFetchInterval = 30 * 60 * 1000; 
-setInterval(fetchAndStoreEarthquakeData, dataFetchInterval);
 
 app.get('/earthquakes', cors(corsOptions), async (req, res) => {
   try {
